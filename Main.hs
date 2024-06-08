@@ -116,31 +116,16 @@ evaluateBoard board color = blackPieces - whitePieces - 2 * whiteDames + 2 * bla
         whiteDames = length $ filter (\(coord, piece) -> isJust piece && pieceColor (fromJust piece) == White && isDame (fromJust piece)) (assocs board)
         blackDames = length $ filter (\(coord, piece) -> isJust piece && pieceColor (fromJust piece) == Black && isDame (fromJust piece)) (assocs board)
 
--- removeStones :: Board -> [(Int, Int)] -> Board
--- removeStones board coords = board // [(coord, Nothing) | coord <- coords]
 
 removeStones :: GameState -> [(Int, Int)] -> GameState
--- remove the stones and adjust the score
 removeStones gameState coords = gameState { board = board gameState // [(coord, Nothing) | coord <- coords], gameScore = newScore }
     where
         -- newScore is the difference between the values of white and black pieces
         removedPiecesValue = sum (map (\coord -> pieceValue (fromJust (board gameState ! coord))) coords)
         newScore = if currPlayer gameState == White then gameScore gameState + removedPiecesValue else gameScore gameState - removedPiecesValue
-        -- newScore = gameScore gameState + sum (map (\coord -> pieceValue (fromJust (board gameState ! coord))) coords)
-
-
--- makeMove :: Board -> (Int, Int) -> (Int, Int) -> Board
--- makeMove board (srcRow, srcCol) (destRow, destCol) = --board // [(dest, board ! src), (src, Nothing)]
---     let rowDiff = destRow - srcRow
---         colDiff = destCol - srcCol
---         steps = abs rowDiff
---         rowStep = rowDiff `div` steps
---         colStep = colDiff `div` steps
---         intermediateSquares = [(srcRow + i * rowStep, srcCol + i * colStep) | i <- [1..(steps - 1)]]
---     in removeStones board intermediateSquares // [((destRow, destCol), board ! (srcRow, srcCol)), ((srcRow, srcCol), Nothing)]
 
 makeMove :: GameState -> (Int, Int) -> (Int, Int) -> GameState
-makeMove gameState (srcRow, srcCol) (destRow, destCol) = --board // [(dest, board ! src), (src, Nothing)]
+makeMove gameState (srcRow, srcCol) (destRow, destCol) =
     let rowDiff = destRow - srcRow
         colDiff = destCol - srcCol
         steps = abs rowDiff
@@ -149,16 +134,11 @@ makeMove gameState (srcRow, srcCol) (destRow, destCol) = --board // [(dest, boar
         intermediateSquares = [(srcRow + i * rowStep, srcCol + i * colStep) | i <- [1..(steps - 1)]]
         updatedGameState = removeStones gameState intermediateSquares
     in updatedGameState { board = board updatedGameState // [((destRow, destCol), board gameState ! (srcRow, srcCol)), ((srcRow, srcCol), Nothing)] }
-    -- in removeStones gameState intermediateSquares -- // [((destRow, destCol), board ! (srcRow, srcCol)), ((srcRow, srcCol), Nothing)]
 
 
 withinBoundsAndHasPiece :: Board -> (Int, Int) -> Bool
 withinBoundsAndHasPiece board (row, col) =
     inRange ((1, 1), (8, 8)) (row, col) && isJust (board ! (row, col))
-
--- withinBounds :: Board -> (Int, Int) -> Bool
--- withinBounds board (row, col) =
---     inRange ((1, 1), (8, 8)) (row, col)
 
 anyPieceCanJump :: Board -> Color -> Bool
 anyPieceCanJump board color = any (\(coord, piece) -> isJust piece && pieceColor (fromJust piece) == color && canJump board coord (fromJust piece)) (assocs board)
@@ -212,75 +192,11 @@ jumps board (srcRow, srcCol) (destRow, destCol) piece =
        ((isStone piece && all (\(r, c) -> isJust (board ! (r, c))) intermediateSquares) || isDame piece && any (\(r, c) -> isJust (board ! (r, c))) intermediateSquares)
 
 
--- validMove :: Board -> (Int, Int) -> (Int, Int) -> Piece -> Bool
--- validMove board (srcRow, srcCol) (destRow, destCol) piece =
---     let rowDiff = destRow - srcRow
---         colDiff = destCol - srcCol
---         pieceIsStone = isStone piece
---         pieceIsDame = isDame piece
---         noSkip = abs rowDiff == 1 && abs colDiff == 1
---         jumped = jumps board (srcRow, srcCol) (destRow, destCol) piece
---         movedForward = isBlack piece && rowDiff > 0 || isWhite piece && rowDiff < 0
---     in
---         (pieceIsStone && (noSkip || jumped) && movedForward) || 
---         (pieceIsDame && abs rowDiff == abs colDiff)
-
-
--- validMoveSequence :: Board -> [(Int, Int)] -> Bool -> Bool -> Piece -> Bool
--- validMoveSequence board coords jumpedAlready starting movingPiece =
---     trace ("firstCellHasPiece: " ++ show firstCellHasPiece) firstCellHasPiece &&
---     trace ("allCellsWithinBounds: " ++ show allCellsWithinBounds) allCellsWithinBounds &&
---     trace ("allTailCellsEmpty: " ++ show allTailCellsEmpty) allTailCellsEmpty &&
---     trace ("jumpedAlreadyCondition: " ++ show jumpedAlreadyCondition) jumpedAlreadyCondition &&
---     trace ("firstMoveValid: " ++ show firstMoveValid) firstMoveValid &&
---     trace ("restMovesValid: " ++ show restMovesValid) restMovesValid
---   where
---     firstCellHasPiece = isJust (board ! head coords) || not starting
---     allCellsWithinBounds = all (withinBounds board) coords
---     allTailCellsEmpty = all (\coord -> isNothing (board ! coord)) (tail coords)
---     canJumpResult = anyPieceCanJump board (pieceColor movingPiece) --canJump board (head coords) movingPiece
---     jumpedAlreadyCondition = 
---         trace ("canJump result: " ++ show canJumpResult) $
---         jumpedAlready || 
---         (
---             not jumpedAlready && 
---             (
---                 not canJumpResult || 
---                 jumps board (head coords) (head (tail coords)) movingPiece
---             )
---         )
---     firstMoveValid = validMove board (head coords) (head (tail coords)) movingPiece
---     restMovesValid = length coords == 2 || validMoveSequence board (tail coords) (jumps board (head coords) (head (tail coords)) movingPiece) False movingPiece
-
-
-
--- performMove :: Board -> [(Int, Int)] -> Board
--- performMove board coords = --makeMove board (head coords) (last coords)
---     if length coords == 2
---         then makeMove board (head coords) (last coords)
---         else performMove (makeMove board (head coords) (head (tail coords))) (tail coords)
-
 performMove :: GameState -> [(Int, Int)] -> GameState
-performMove gameState coords = --makeMove board (head coords) (last coords)
+performMove gameState coords =
     if length coords == 2
         then makeMove gameState (head coords) (last coords)
         else performMove (makeMove gameState (head coords) (head (tail coords))) (tail coords)
--- playerTurn :: Board -> IO Board
--- playerTurn board = do
---     putStrLn "Enter your move (e.g., A4 C6 A8):"
---     input <- getLine
---     let moves = words input
---     let coords = map parseCoords moves
---     print coords
---     print board
---     let validMove = validMoveSequence board coords False True (fromJust (board ! head coords))
---     if not validMove
---         then do
---             putStrLn "Invalid move. Make sure all coordinates are within bounds and have pieces."
---             playerTurn board
---         else do
---             return $ performMove board coords
-
 
 
 parseCoords :: String -> (Int, Int)
@@ -356,7 +272,6 @@ validMoveSequence gameState coords =
 
 
 moveInputCorrectFormat :: String -> Bool
--- the format is uppercase letter + number, separated by nothing
 moveInputCorrectFormat [col, row] = 'A' <= col && col <= 'H' && '1' <= row && row <= '8'
 moveInputCorrectFormat _ = False
 
@@ -382,41 +297,14 @@ playerTurn gameState = do
                     return $ performMove gameState coords -- gameState { board = performMove (board gameState) coords }
 
 
-
-
-
-
--- createDames :: Board -> Board
--- -- if there are any black stones in row 8 or white stones in row 1, change them to dames
--- createDames board = board // [(coord, Just (Piece Dame (pieceColor (fromJust piece)))) | (coord, piece) <- assocs board, isJust piece, isStone (fromJust piece), (fst coord == 8 && isBlack (fromJust piece)) || (fst coord == 1 && isWhite (fromJust piece))]
-
 createDames :: GameState -> GameState
--- promote stones at the ends to dames, add them to the score
 createDames gameState = gameState { board = newBoard, gameScore = newScore }
     where
         piecesToPromote = filter (\(coord, piece) -> isJust piece && isStone (fromJust piece) && (fst coord == 8 && isBlack (fromJust piece) || fst coord == 1 && isWhite (fromJust piece))) (assocs (board gameState))
-        -- value change is the number of black pieces in piecesToPromote minus the number of white pieces in piecesToPromote
         valueChange = sum (map (\(coord, piece) -> pieceValue (fromJust piece)) piecesToPromote)
         newBoard = board gameState // [(coord, Just (Piece Dame (pieceColor (fromJust piece)))) | (coord, piece) <- piecesToPromote]
         newScore = gameScore gameState + valueChange
-        
-    
--- createDames gameState = gameState { board = board gameState // [(coord, Just (Piece Dame (pieceColor (fromJust piece)))) | (coord, piece) <- assocs (board gameState), isJust piece, isStone (fromJust piece), (fst coord == 8 && isBlack (fromJust piece)) || (fst coord == 1 && isWhite (fromJust piece))], gameScore = newScore }
---     where
---         newScore = gameScore gameState + sum (map (\coord -> pieceValue (fromJust (board gameState ! coord))) (filter (\(coord, piece) -> isJust piece && isStone (fromJust piece) && (fst coord == 8 && isBlack (fromJust piece) || fst coord == 1 && isWhite (fromJust piece))) (assocs (board gameState))))
--- main :: IO ()
--- main = do
---   putStrLn "Initial Board State:"
---   putStrLn (showBoard initializeBoard)
---   loop initializeBoard
---   where
---     loop board = do
---       playerBoard <- playerTurn board
---       let updatedBoard = aiTurn playerBoard
---       let damesBoard = createDames updatedBoard
---       putStrLn (showBoard damesBoard)
---       print (evaluateBoard damesBoard Black)
---       loop damesBoard
+
 
 multiPlayerTurn :: GameState -> IO GameState
 multiPlayerTurn gameState = do
