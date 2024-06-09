@@ -39,22 +39,22 @@ initialGameState = GameState {
     gameScore = 0
 }
 
-dummyBoard :: Board
--- has a white piece at (6, 2) and black pieces at (5, 3) and (4, 4)
-dummyBoard = array ((1,1), (8,8)) [((i, j), initialPiece i j) | i <- [1..8], j <- [1..8]]
-  where
-    initialPiece i j
-      | i == 6 && j == 2 = Just (Piece Stone White)
-      | i == 5 && j == 3 = Just (Piece Stone Black)
-      | i == 4 && j == 4 = Just (Piece Stone Black)
-      | otherwise = Nothing
+-- dummyBoard :: Board
+-- -- has a white piece at (6, 2) and black pieces at (5, 3) and (4, 4)
+-- dummyBoard = array ((1,1), (8,8)) [((i, j), initialPiece i j) | i <- [1..8], j <- [1..8]]
+--   where
+--     initialPiece i j
+--       | i == 6 && j == 2 = Just (Piece Stone White)
+--       | i == 5 && j == 3 = Just (Piece Stone Black)
+--       | i == 4 && j == 4 = Just (Piece Stone Black)
+--       | otherwise = Nothing
 
-dummyGameState :: GameState
-dummyGameState = GameState {
-    board = dummyBoard,
-    currPlayer = White,
-    gameScore = 0
-}
+-- dummyGameState :: GameState
+-- dummyGameState = GameState {
+--     board = dummyBoard,
+--     currPlayer = White,
+--     gameScore = 0
+-- }
 
 ---------------------------------------------------------------------------------------------------------
 -- Show methods
@@ -105,6 +105,10 @@ pieceValue (Piece Dame _) = 2
 
 pieceColor :: Piece -> Color
 pieceColor (Piece _ color) = color
+
+pieceType :: Piece -> PieceType
+pieceType (Piece pieceType _) = pieceType
+
 
 isStone :: Piece -> Bool
 isStone (Piece Stone _) = True
@@ -317,6 +321,14 @@ allMoveSeqsFromCoords4 :: GameState -> Piece -> (Int, Int) -> [[(Int, Int)]]
 allMoveSeqsFromCoords4 gameState piece src = allMoveSeqsFromCoords gameState piece src 4
 
 
+getPiecesCount :: GameState -> Piece -> Int
+getPiecesCount gameState pieceKind = length $ filter (\(coord, piece) -> 
+            isJust piece && 
+            pieceColor (fromJust piece) == pieceColor pieceKind && 
+            pieceType (fromJust piece) == pieceType pieceKind) (assocs (board gameState))
+
+
+
 
 ---------------------------------------------------------------------------------------------------------
 -- Validation functions
@@ -417,24 +429,19 @@ createDames gameState = gameState { board = newBoard, gameScore = newScore }
 switchPlayers :: GameState -> GameState
 switchPlayers gameState = gameState { currPlayer = if currPlayer gameState == Black then White else Black }
 
+
+
+
 checkEnd :: GameState -> IO Bool
 checkEnd gameState = do
-    let blackPieces = length $ filter (\(coord, piece) -> 
-            isJust piece && 
-            pieceColor (fromJust piece) == Black && 
-            isStone (fromJust piece)) (assocs (board gameState))
-    let whitePieces = length $ filter (\(coord, piece) -> 
-            isJust piece && 
-            pieceColor (fromJust piece) == White && 
-            isStone (fromJust piece)) (assocs (board gameState))
-    let whiteDames = length $ filter (\(coord, piece) -> 
-            isJust piece && 
-            pieceColor (fromJust piece) == White && 
-            isDame (fromJust piece)) (assocs (board gameState))
-    let blackDames = length $ filter (\(coord, piece) -> 
-            isJust piece && 
-            pieceColor (fromJust piece) == Black && 
-            isDame (fromJust piece)) (assocs (board gameState))
+    let blackPieces = getPiecesCount gameState (Piece Stone Black)
+    let whitePieces = getPiecesCount gameState (Piece Stone White)
+        --length $ filter (\(coord, piece) -> 
+    --         isJust piece && 
+    --         pieceColor (fromJust piece) == White && 
+    --         isStone (fromJust piece)) (assocs (board gameState))
+    let whiteDames = getPiecesCount gameState (Piece Dame White)
+    let blackDames = getPiecesCount gameState (Piece Dame Black)
     if blackPieces == 0
         then do
             putStrLn "White wins! Black has no pieces left."
