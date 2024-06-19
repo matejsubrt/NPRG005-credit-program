@@ -40,23 +40,6 @@ initialGameState = GameState {
     gameScore = 0
 }
 
--- dummyBoard :: Board
--- -- has a white piece at (6, 2) and black pieces at (5, 3) and (4, 4)
--- dummyBoard = array ((1,1), (8,8)) [((i, j), initialPiece i j) | i <- [1..8], j <- [1..8]]
---   where
---     initialPiece i j
---       | i == 6 && j == 2 = Just (Piece Stone White)
---       | i == 5 && j == 3 = Just (Piece Stone Black)
---       | i == 4 && j == 4 = Just (Piece Stone Black)
---       | otherwise = Nothing
-
--- dummyGameState :: GameState
--- dummyGameState = GameState {
---     board = dummyBoard,
---     currPlayer = White,
---     gameScore = 0
--- }
-
 ---------------------------------------------------------------------------------------------------------
 -- Show methods
 
@@ -213,10 +196,6 @@ anyPieceCanJump :: Board -> Color -> Bool
 anyPieceCanJump board color = 
     or [ pieceColor piece == color && canJump board coord piece |
          (coord, Just piece) <- assocs board ]
-    -- any (
-    --     \(coord, piece) -> isJust piece && 
-    --     pieceColor (fromJust piece) == color && 
-    --     canJump board coord (fromJust piece)) (assocs board)
 
 jumps :: Board -> (Int, Int) -> (Int, Int) -> Piece -> Bool
 jumps board (srcRow, srcCol) (destRow, destCol) piece =
@@ -244,10 +223,6 @@ performMove gameState [coord] = error "Move has to consist of at least 2 coordin
 performMove gameState [coord1, coord2] = makeMove gameState coord1 coord2
 performMove gameState (coord1 : coord2 : rest) =
     performMove (makeMove gameState coord1 coord2) (coord2 : rest)
--- performMove gameState coords =
---     if length coords == 2
---         then makeMove gameState (head coords) (last coords)
---         else performMove (makeMove gameState (head coords) (head (tail coords))) (tail coords)
 
 
 
@@ -332,10 +307,6 @@ getPiecesCount :: GameState -> Piece -> Int
 getPiecesCount gameState pieceKind = length $ filter (
     \(coord, piece) -> piece == Just (Piece (pieceType pieceKind) (pieceColor pieceKind)))
     (assocs (board gameState))
-
-            -- isJust piece && 
-            -- pieceColor (fromJust piece) == pieceColor pieceKind && 
-            -- pieceType (fromJust piece) == pieceType pieceKind) (assocs (board gameState))
 
 
 
@@ -432,14 +403,6 @@ createDames gameState = gameState { board = newBoard, gameScore = newScore }
         promote ((1, _), Just (Piece Stone White)) = True
         promote _ = False
         piecesToPromote = filter promote (assocs (board gameState))
-        -- piecesToPromote = filter 
-        --     (\(coord, piece) -> 
-        --         isJust piece && 
-        --         isStone (fromJust piece) && 
-        --             (fst coord == 8 && 
-        --             isBlack (fromJust piece) || 
-        --             fst coord == 1 && isWhite (fromJust piece))) (assocs (board gameState))
-        --valueChange = sum (map (\(coord, piece) -> pieceValue (fromJust piece)) piecesToPromote)
         valueChange = sum (map (\(coord, Just piece) -> pieceValue piece) piecesToPromote)
         newBoard = board gameState // 
             [(coord, Just (Piece Dame (pieceColor piece))) | (coord, Just piece) <- piecesToPromote]
@@ -455,10 +418,6 @@ checkEnd :: GameState -> IO Bool
 checkEnd gameState = do
     let blackPieces = getPiecesCount gameState (Piece Stone Black)
     let whitePieces = getPiecesCount gameState (Piece Stone White)
-        --length $ filter (\(coord, piece) -> 
-    --         isJust piece && 
-    --         pieceColor (fromJust piece) == White && 
-    --         isStone (fromJust piece)) (assocs (board gameState))
     let whiteDames = getPiecesCount gameState (Piece Dame White)
     let blackDames = getPiecesCount gameState (Piece Dame Black)
     if blackPieces == 0
@@ -556,18 +515,12 @@ aiMinimax gameState maximizing depth =
                         (not maximizing) 
                         (depth - 1)
                 in (move : seqs, value)) allMovesFinal
-            bestMove = (if maximizing then maximumBy else minimumBy) (comparing snd) results-- if maximizing
-                       -- then maximumBy (\(_, value1) (_, value2) -> value1 `compare` value2) results
-                       -- else minimumBy (\(_, value1) (_, value2) -> value1 `compare` value2) results
+            bestMove = (if maximizing then maximumBy else minimumBy) (comparing snd) results
         in bestMove
 
 
 aiTurn :: GameState -> Int -> IO GameState
 aiTurn gameState difficulty = do
-    -- let minimaxDepth
-    --       | difficulty == "1" = 1
-    --       | difficulty == "2" = 3
-    --       | otherwise = 5
     let minimaxDepth = 2 * difficulty - 1
     (bestMove, _) <- return $ aiMinimax gameState False minimaxDepth
     let newState = performMove gameState (head bestMove)
