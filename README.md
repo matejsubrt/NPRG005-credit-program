@@ -31,6 +31,7 @@
 - multiple skips may be performed after one another if possible
 - IF A PLAYER CAN SKIP, THEY MUST DO SO
     - if they can skip in multiple ways, they may choose which one
+    - if they can skip with both a stone and a dame, they must do so with the dame
 - the game ends by a player winning if:
     - the other player has no more pieces left
     - all the pieces of the other player are blocked and can not move
